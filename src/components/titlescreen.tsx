@@ -15,7 +15,7 @@ export default function TitleScreen({onClickFunction}: TitleScreenProps) {
             <div className='block p-10'>
                 <div className='flex justify-center flex-wrap'>
                     <Button label='Singleplayer' value='singleplayer' onClickFunction={onClickFunction} disabled={false} />
-                    <Button label='Multiplayer' value='multiplayer' onClickFunction={onClickFunction} disabled={true} />
+                    <Button label='Multiplayer' value='multiplayer' onClickFunction={onClickFunction} disabled={false} />
                 </div>
             </div>
         );

@@ -25,6 +25,10 @@ export default function Gameboard() {
         if(winCheck) {
             newGameState.status = 'gameover';
             newGameState.message = 'You have won!';
+        } else {
+            //edit game state for switching turn to AI
+            newGameState.turn = newGameState.AIPiece;
+            newGameState.message = "AI's turn!";
         }
 
         //set new state
@@ -37,10 +41,6 @@ export default function Gameboard() {
 
     const takeAITurn = () => {
         let newGameState = gameState;
-
-        //edit game state for switching turn to AI
-        newGameState.turn = newGameState.AIPiece;
-        newGameState.message = "AI's turn!";
 
         //have AI move if no one won yet
         let miniMaxResult = minimaxAI(newGameState.boardState, MINIMAX_DEPTH, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, true, newGameState.playerPiece, newGameState.AIPiece);
