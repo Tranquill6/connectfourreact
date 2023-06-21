@@ -5,7 +5,7 @@ import Footer from '@/components/footer'
 
 export default function Home() {
   return (
-    <div className='bg-gray-800 h-screen w-screen'>
+    <div className='h-screen w-screen overflow-y-auto overflow-x-hidden'>
       <Header />
       <Game />
       <Footer />
