@@ -61,7 +61,6 @@ nextApp.prepare().then(async() => {
 
             //set user data for that socket
             socket.data.username = user.username;
-            socket.data.room = "-1";
 
             //broadcast welcome message to all other clients
             socket.broadcast.emit('newLobbyMessageAll', { name: 'Server', message: `${user.username} has connected to the server!` });
@@ -78,19 +77,41 @@ nextApp.prepare().then(async() => {
             let addedToRoom = false;
             let savedRoomId: string = '-1';
             let savedGameState: any;
-            //check if there are any rooms available
+            //check if there are any rooms available with one person, this is preferable
             roomList.forEach((ele, ind, arr) => {
+                //check if room has 0 users and is gameover status, then restart it
+                if(ele.getUserCount() == 0 && (ele.getGameStatus() == 'gameover' || ele.getGameStatus() == 'gameover-draw')) {
+                    console.log("restarted room");
+                    ele.restartGame();
+                }
                 //if room has enough space, add user to this room
-                if(ele.getUserCount() < 2) {
-                    console.log("added user to existing room");
+                if(ele.getUserCount() == 1 && ele.getGameStatus() != 'gameover' && ele.getGameStatus() != 'gameover-draw') {
+                    console.log("added user to existing room with one person");
                     ele.addUserToRoom(socket.data.sessionID, socket.data.user);
                     socket.join(String(ele.getRoomId()));
                     addedToRoom = true;
                     savedRoomId = String(ele.getRoomId());
                     console.log("emitting on room id: ", ele.getRoomId());
                     savedGameState = ele.getGameState();
+                    return;
                 }
             });
+            //check if there are any rooms available with zero people, if no room was found before
+            if(!addedToRoom) {
+                roomList.forEach((ele, ind, arr) => {
+                    //if room has enough space, add user to this room
+                    if(ele.getUserCount() < 2 && ele.getGameStatus() != 'gameover' && ele.getGameStatus() != 'gameover-draw') {
+                        console.log("added user to existing empty room");
+                        ele.addUserToRoom(socket.data.sessionID, socket.data.user);
+                        socket.join(String(ele.getRoomId()));
+                        addedToRoom = true;
+                        savedRoomId = String(ele.getRoomId());
+                        console.log("emitting on room id: ", ele.getRoomId());
+                        savedGameState = ele.getGameState();
+                        return;
+                    }
+                });
+            }
             //there were no rooms available, create one
             if(!addedToRoom) {
                 console.log("creating room...");
@@ -106,6 +127,19 @@ nextApp.prepare().then(async() => {
             socket.to(savedRoomId).emit("gameStateRefresh", { gameState: savedGameState } );
         });
 
+        socket.on('makeGameMove', (res: any) => {
+            //search for user's room
+            roomList.forEach((ele, ind, arr) => {
+                //look for user, if found then make the move in their room
+                if(ele.getUsers().has(socket.data.sessionID)) {
+                    ele.makeMoveOnBoard(res.column);
+                    //send out updated gamestate to users
+                    socket.emit("gameStateRefresh", { gameState: ele.getGameState() } );
+                    socket.to(String(ele.getRoomId())).emit("gameStateRefresh", { gameState: ele.getGameState() } );
+                }
+            });
+        });
+
         socket.on('disconnect', async () => {
             console.log('Client disconnected...');
             const matchingSockets = await io.in(socket.data.userID).fetchSockets();
@@ -114,14 +148,11 @@ nextApp.prepare().then(async() => {
                 //remove user from all rooms
                 roomList.forEach((ele, ind, arr) => {
                     let roomRemoval: boolean = ele.removeUserFromRoom(socket.data.sessionID);
-                    //if user got removed from this room, set game status to waiting. Send out updated game state to users in room
+                    //if user got removed from this room, send out updated game state to users in room
                     if(roomRemoval) {
-                        ele.gameState.status = 'waiting';
                         socket.to(String(ele.getRoomId())).emit("gameStateRefresh", { gameState: ele.getGameState() } );
                     }
                 });
-                // notify other users
-                socket.broadcast.emit("user disconnected", socket.data.userID);
                 // update the connection status of the session
                 sessionStore.saveSession(socket.data.sessionID, {
                     userID: socket.data.userID,

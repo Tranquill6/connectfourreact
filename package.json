@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "set DEBUG=socket.io* & nodemon server.ts",
+    "dev": "nodemon server.ts",
     "build": "next build",
     "start": "node server.ts",
     "lint": "next lint"

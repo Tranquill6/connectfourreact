@@ -12,13 +12,17 @@ export default function GameBoard() {
     const [chosenUsername, setChosenUsername] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [inGame, setInGame] = useState(false);
-    const [gameState, setGameState] = useState({ boardState: [], status: '' });
+    const [gameState, setGameState] = useState<{boardState: any; status: string; turn: number; turns: any}>({ boardState: [], status: '', turn: 0, turns: { '34324234' : '2' } });
     const [gameBoard, setGameBoard] = useState<any>(generateNewBoard(null));
     const [searchingForLobby, setSearchingForLobby] = useState(false);
     const [messages, setMessages] = useState([{name: 'Server', message: 'Successfully connected to chat'}]);
     const [currentMessage, setCurrentMessage] = useState('');
+    const [currentGameMessage, setCurrentGameMessage] = useState('');
     const messageRef = useRef<any>(null);
     const messagesEndRef = useRef<any>(null);
+    const gameStateRef = useRef<any>();
+
+    gameStateRef.current = gameState;
 
     //allows the socket stuff to even work
     useEffect(() => {
@@ -45,10 +49,10 @@ export default function GameBoard() {
         });
 
         socket.on('gameStateRefresh', (res: any) => {
-            console.log("game state refresh!!", res);
             setGameState(res.gameState);
             setInGame(true);
-            setGameBoard(changeCurrentBoard(res.gameState.boardState, null));
+            setGameBoard(changeCurrentBoard(res.gameState.boardState, checkIfCanMove));
+            updateCurrentGameMessage(res.gameState);
         });
 
         socket.on('session', (res: any) => {
@@ -61,7 +65,7 @@ export default function GameBoard() {
         });
 
         //scroll chat window to bottom
-        if(isAuthenticated) {
+        if(isAuthenticated && !inGame) {
             messagesEndRef.current.scrollIntoView();
         }
 
@@ -114,9 +118,39 @@ export default function GameBoard() {
         }
     };
 
+    //handle user looking for game
     const lookForRoom = () => {
         setSearchingForLobby(true);
         socket.emit('searchForRoom', username);
+    };
+
+    //see if user can move in a game
+    const checkIfCanMove = (col: number) => {
+        //it has to be the user's turn and the game has to be on playing status to make a move
+        if(gameStateRef.current.turn == gameStateRef.current.turns[socket.auth] && gameStateRef.current.status == 'playing') {
+            socket.emit('makeGameMove', { sessionId: socket.auth, column: col });
+        }
+    };
+
+    //update the game message based on the game state
+    const updateCurrentGameMessage = (gameState: any) => {
+        if(gameState.status != 'waiting') {
+            //if it is your turn
+            if(gameState.turn == gameState.turns[socket.auth] && gameState.status == 'playing') {
+                setCurrentGameMessage('Your turn!');
+            //if it is not you turn
+            } else if (gameState.turn != gameState.turns[socket.auth] && gameState.status == 'playing') {
+                setCurrentGameMessage("Opponent's turn!");
+            //if you won the game
+            } else if (gameState.status == 'gameover' && gameState.turn == gameState.turns[socket.auth]) {
+                setCurrentGameMessage('You won, please re-queue to play again!');
+            //if you lost the game
+            } else if (gameState.status == 'gameover' && gameState.turn != gameState.turns[socket.auth]) {
+                setCurrentGameMessage('You lost, please re-queue to play again!');
+            } else if (gameState.status == 'gameover-draw') {
+                setCurrentGameMessage('The game is a draw, you both suck!');
+            }
+        }
     };
 
     //if the user is in a game/room
@@ -127,6 +161,7 @@ export default function GameBoard() {
                 <div className='mt-10 flex'>
                     {gameBoard}
                 </div>
+                <div className="text-center text-lg font-bold mt-3">{gameState.status != 'waiting' ? currentGameMessage : ''}</div>
             </div>
         );
     //user is authenticated (chose a username and connected successfully)
