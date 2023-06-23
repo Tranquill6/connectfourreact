@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { generateNewBoard, changeCurrentBoard, checkForWin, minimaxAI } from "../helper/helperfunctions";
-import { CELLS_PER_COLUMN, MINIMAX_DEPTH } from "../helper/constants";
+import { CELLS_PER_COLUMN, COLUMNS_PER_BOARD, MINIMAX_DEPTH } from "../helper/constants";
 import { statusContext } from "@/context/contexts";
 
 export default function Gameboard() {
@@ -34,6 +34,14 @@ export default function Gameboard() {
         //set new state
         setGameState(newGameState);
         setTurnCount(prevTurnCount => prevTurnCount + 1);
+
+        //check for draw
+        if(drawCheck()) {
+            newGameState.status = 'gameover-draw';
+            newGameState.message = 'The game is a draw!';
+            setGameState(newGameState);
+        }
+
         if(!winCheck) {
             takeAITurn(); // have AI take turn if player hasn't won
         }
@@ -66,6 +74,13 @@ export default function Gameboard() {
         //set new state
         setGameState(newGameState);
         setTurnCount(prevTurnCount => prevTurnCount + 1);
+
+        //check for draw
+        if(drawCheck()) {
+            newGameState.status = 'gameover-draw';
+            newGameState.message = 'The game is a draw!';
+            setGameState(newGameState);
+        }
     }
 
     const putPieceInCol = (board: any, col: number, piece: number) => {
@@ -74,6 +89,13 @@ export default function Gameboard() {
                 board[i][col] = piece;
                 return true;
             }
+        }
+        return false;
+    }
+
+    const drawCheck = () => {
+        if(turnCount == (CELLS_PER_COLUMN*COLUMNS_PER_BOARD)) {
+            return true;
         }
         return false;
     }

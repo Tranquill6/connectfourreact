@@ -24,7 +24,7 @@ export default function Cell({click, columnIndex, value}: CellProps) {
 
     return(
         <div className='w-28 h-28 bg-blue-500 rounded-lg flex justify-center items-center' onClick={() => {
-            if(gameStatus != 'gameover') {
+            if(gameStatus != 'gameover' && gameStatus != 'gameover-draw') {
                 click(columnIndex);
             }
         }}>

@@ -150,6 +150,7 @@ nextApp.prepare().then(async() => {
                     let roomRemoval: boolean = ele.removeUserFromRoom(socket.data.sessionID);
                     //if user got removed from this room, send out updated game state to users in room
                     if(roomRemoval) {
+                        socket.leave(String(ele.getRoomId()));
                         socket.to(String(ele.getRoomId())).emit("gameStateRefresh", { gameState: ele.getGameState() } );
                     }
                 });
@@ -161,6 +162,19 @@ nextApp.prepare().then(async() => {
                 });
             }
         });
+
+        socket.on('leaveLobby', () => {
+            //remove user from all rooms
+            roomList.forEach((ele, ind, arr) => {
+                let roomRemoval: boolean = ele.removeUserFromRoom(socket.data.sessionID);
+                //if user got removed from this room, send out updated game state to users in room
+                if(roomRemoval) {
+                    socket.leave(String(ele.getRoomId()));
+                    socket.to(String(ele.getRoomId())).emit("gameStateRefresh", { gameState: ele.getGameState() } );
+                }
+            });
+        });
+
     });
 
     app.all('*', (req: any, res: any) => nextHandler(req, res));

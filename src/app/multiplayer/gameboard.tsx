@@ -153,10 +153,17 @@ export default function GameBoard() {
         }
     };
 
+    const returnToLobby = () => {
+        setSearchingForLobby(false);
+        setInGame(false);
+        socket.emit('leaveLobby', {});
+    };
+
     //if the user is in a game/room
     if(inGame) {
         return(
             <div>
+                <div className='flex justify-end mt-[-40px] mr-[-20px]'><Button label='Back to Lobby' value='returnlobby' onClickFunction={returnToLobby} disabled={false} /></div>
                 <div className="text-center text-sm font-bold mt-10" hidden={gameState.status != 'waiting'}>Waiting for another player to continue...</div>
                 <div className='mt-10 flex'>
                     {gameBoard}
